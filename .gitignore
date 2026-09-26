@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+
+backend/.env
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/storage/*.key
+
+frontend/.env*
+!frontend/.env.example
+frontend/node_modules/
+frontend/.next/
+frontend/out/

@@ -1,0 +1,139 @@
+.page {
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px clamp(24px, 7vw, 104px) 24px;
+  background-image: linear-gradient(rgba(32, 38, 36, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 38, 36, 0.035) 1px, transparent 1px);
+  background-position: center;
+  background-size: 44px 44px;
+}
+
+.header,
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.header {
+  min-height: 36px;
+  color: var(--muted);
+}
+
+.brandMark {
+  display: grid;
+  width: 32px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: var(--green);
+  font-family: Georgia, serif;
+  font-size: 17px;
+}
+
+.phase {
+  margin-left: auto;
+  padding: 8px 10px;
+  border: 1px solid rgba(32, 38, 36, 0.18);
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+.main {
+  width: min(100%, 860px);
+  margin: auto;
+  padding: 72px 0 88px;
+}
+
+.eyebrow {
+  margin-bottom: 24px;
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.main h1 {
+  max-width: 790px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 68px;
+  font-weight: 400;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 510px;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 40px;
+  padding: 11px 14px;
+  border: 1px solid rgba(36, 109, 85, 0.22);
+  border-radius: 3px;
+  color: var(--green);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusDot {
+  width: 8px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #3b9b72;
+  box-shadow: 0 0 0 3px rgba(59, 155, 114, 0.13);
+}
+
+.footer {
+  min-height: 28px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 22px 20px 18px;
+  }
+
+  .header,
+  .footer {
+    font-size: 9px;
+  }
+
+  .header {
+    gap: 10px;
+  }
+
+  .phase {
+    padding: 6px 8px;
+  }
+
+  .main {
+    padding: 56px 0 68px;
+  }
+
+  .eyebrow {
+    margin-bottom: 18px;
+  }
+
+  .main h1 {
+    font-size: 46px;
+  }
+
+  .description {
+    font-size: 15px;
+  }
+}
