@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RefundRequestController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -11,3 +12,5 @@ Route::get('/health', function () {
         'database' => 'connected',
     ]);
 });
+
+Route::post('/refund-requests', [RefundRequestController::class, 'store']);

@@ -1,6 +1,6 @@
 # AI-Powered Customer Support Refund System
 
-Foundation for the WORKNOON full-stack AI integration product challenge. This phase provides a Laravel API, Next.js frontend, and PostgreSQL database; refund and AI features are not implemented yet.
+Backend foundation for the WORKNOON full-stack AI integration product challenge, with a Laravel API, Next.js frontend, and PostgreSQL database. Phase 1 adds synthetic customer/order data and a deterministic refund policy; AI integration is not implemented.
 
 ## Stack
 
@@ -29,4 +29,18 @@ Open the frontend at [http://localhost:3000](http://localhost:3000). The backend
 
 Stop the services with `docker compose down`. To also remove the local PostgreSQL data volume, run `docker compose down -v`.
 
-**Status:** Phase 0 — Foundation.
+**Status:** Phase 1 — Refund domain and deterministic policy foundation.
+
+## Phase 1 — Refund foundation
+
+Refund decisions are deterministic and independent of AI providers. Final-sale orders and requests outside the 30-day window are denied first; suspicious, conflicting, or requests over $500 are escalated; eligible damaged-item and incorrect-item requests are approved. Other reasons are denied as unsupported.
+
+The refund window and high-value threshold are configurable as `REFUND_WINDOW_DAYS` and `REFUND_HIGH_VALUE_THRESHOLD_CENTS` in the root environment file.
+
+Seed 15 synthetic customer profiles, 30 orders, and seven policy-example requests in the running stack:
+
+```sh
+docker compose exec backend php artisan db:seed
+```
+
+Submit a request with `POST /api/refund-requests` using `order_id`, `requested_amount`, and a reason (`DAMAGED`, `INCORRECT_ITEM`, or `OTHER`), with optional `customer_message`. Order facts, including final-sale status, amount, and date, are loaded from the database. The response includes `id`, `outcome`, `reason_code`, and `explanation`.
