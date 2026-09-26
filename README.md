@@ -1,6 +1,6 @@
 # AI-Powered Customer Support Refund System
 
-Backend foundation for the WORKNOON full-stack AI integration product challenge, with a Laravel API, Next.js frontend, and PostgreSQL database. Phase 1 adds synthetic customer/order data and a deterministic refund policy; AI integration is not implemented.
+Full-stack AI-powered customer support refund system foundation for the WORKNOON product challenge, with a Laravel API, Next.js frontend, and PostgreSQL database. Refund decisions remain deterministic and authoritative; AI only analyzes customer messages and provides advisory support.
 
 ## Stack
 
@@ -29,7 +29,7 @@ Open the frontend at [http://localhost:3000](http://localhost:3000). The backend
 
 Stop the services with `docker compose down`. To also remove the local PostgreSQL data volume, run `docker compose down -v`.
 
-**Status:** Phase 1 — Refund domain and deterministic policy foundation.
+**Status:** Phase 2 — Provider-neutral AI-assisted refund analysis and deterministic policy orchestration.
 
 ## Phase 1 — Refund foundation
 
@@ -43,4 +43,10 @@ Seed 15 synthetic customer profiles, 30 orders, and seven policy-example request
 docker compose exec backend php artisan db:seed
 ```
 
-Submit a request with `POST /api/refund-requests` using `order_id`, `requested_amount`, and a reason (`DAMAGED`, `INCORRECT_ITEM`, or `OTHER`), with optional `customer_message`. Order facts, including final-sale status, amount, and date, are loaded from the database. The response includes `id`, `outcome`, `reason_code`, and `explanation`.
+Submit a request with `POST /api/refund-requests` using `order_id`, `requested_amount`, a reason hint (`DAMAGED`, `INCORRECT_ITEM`, or `OTHER`), and a required `customer_message`. Order facts, including final-sale status, amount, and date, are loaded from the database. AI classification supersedes the reason hint before deterministic policy evaluation.
+
+## Phase 2 — AI-assisted analysis
+
+The backend analyzes the customer message through a provider-neutral `RefundAiAnalyzer` and `LlmClient` contract. OpenAI Responses API is the configured initial provider, using strict structured output for classification, summary, risk signals, confidence, and a suggested response. The API key is never returned or logged; no AI SDK is installed, and automated tests use fakes/HTTP fakes without external calls.
+
+Configure `AI_PROVIDER`, `AI_MODEL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `AI_TIMEOUT_SECONDS` in the root environment file. Leave the key empty to exercise safe unavailable-provider behavior: hard policy denials remain denied and otherwise eligible requests are escalated for human review. AI interpretation and suggested wording are advisory; `RefundPolicyEngine` remains authoritative.

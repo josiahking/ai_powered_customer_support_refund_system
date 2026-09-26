@@ -24,8 +24,17 @@ class RefundRequestController extends Controller
             'customer_id' => $refundRequest->customer_id,
             'order_id' => $refundRequest->order_id,
             'outcome' => $refundRequest->status->value,
-            'reason_code' => $refundRequest->policy_reason_code->value,
-            'explanation' => $refundRequest->policy_explanation,
+            'reason_code' => $refundRequest->resolution_reason_code,
+            'explanation' => $refundRequest->resolution_explanation,
+            'ai_analysis_status' => $refundRequest->ai_status->value,
+            'ai_analysis' => $refundRequest->ai_analysis,
+            'ai_provider' => $refundRequest->ai_provider,
+            'ai_model' => $refundRequest->ai_model,
+            'policy' => [
+                'outcome' => $refundRequest->policy_outcome?->value,
+                'reason_code' => $refundRequest->policy_reason_code->value,
+                'explanation' => $refundRequest->policy_explanation,
+            ],
         ], Response::HTTP_CREATED);
     }
 }

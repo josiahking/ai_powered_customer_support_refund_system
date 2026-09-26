@@ -2,16 +2,34 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\RefundAiAnalyzer;
+use App\Domain\Refunds\RefundAnalysis;
 use App\Domain\Refunds\RefundOutcome;
 use App\Domain\Refunds\RefundPolicyReasonCode;
+use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fakes\FakeRefundAiAnalyzer;
 use Tests\TestCase;
 
 class RefundRequestApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->instance(RefundAiAnalyzer::class, new FakeRefundAiAnalyzer(new RefundAnalysis(
+            classifiedReason: RefundReason::Damaged,
+            summary: 'The customer reports a damaged item.',
+            suspicious: false,
+            conflictingClaims: false,
+            confidence: 0.9,
+            suggestedResponse: 'We are reviewing the damaged item report.',
+        )));
+    }
 
     public function test_valid_request_is_evaluated_and_persisted_from_order_facts(): void
     {
@@ -61,6 +79,7 @@ class RefundRequestApiTest extends TestCase
             'order_id' => $order->id,
             'requested_amount' => '120.00',
             'reason' => 'DAMAGED',
+            'customer_message' => 'The item arrived damaged.',
             'final_sale' => false,
             'ordered_at' => now()->toDateString(),
         ]);
@@ -105,6 +124,7 @@ class RefundRequestApiTest extends TestCase
             'order_id' => $order->id,
             'requested_amount' => '200.01',
             'reason' => 'DAMAGED',
+            'customer_message' => 'The item arrived damaged.',
         ]);
 
         $response->assertUnprocessable()->assertJsonValidationErrors('requested_amount');

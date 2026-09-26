@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Refunds\AiAnalysisStatus;
 use App\Domain\Refunds\RefundOutcome;
 use App\Domain\Refunds\RefundPolicyReasonCode;
 use App\Domain\Refunds\RefundReason;
@@ -19,6 +20,14 @@ class RefundRequest extends Model
         'status',
         'policy_reason_code',
         'policy_explanation',
+        'ai_status',
+        'ai_analysis',
+        'ai_provider',
+        'ai_model',
+        'ai_error_code',
+        'policy_outcome',
+        'resolution_reason_code',
+        'resolution_explanation',
     ];
 
     protected function casts(): array
@@ -28,6 +37,9 @@ class RefundRequest extends Model
             'reason' => RefundReason::class,
             'status' => RefundOutcome::class,
             'policy_reason_code' => RefundPolicyReasonCode::class,
+            'ai_status' => AiAnalysisStatus::class,
+            'ai_analysis' => 'array',
+            'policy_outcome' => RefundOutcome::class,
         ];
     }
 

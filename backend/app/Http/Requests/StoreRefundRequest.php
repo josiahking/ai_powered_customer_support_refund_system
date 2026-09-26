@@ -20,7 +20,7 @@ class StoreRefundRequest extends FormRequest
             'order_id' => ['required', 'integer', 'exists:orders,id'],
             'requested_amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:99999999.99'],
             'reason' => ['required', Rule::enum(RefundReason::class)],
-            'customer_message' => ['nullable', 'string', 'max:2000'],
+            'customer_message' => ['required', 'string', 'max:2000'],
         ];
     }
 }

@@ -2,11 +2,15 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Refunds\AiAnalysisStatus;
+use App\Domain\Refunds\Money;
+use App\Domain\Refunds\RefundPolicyEngine;
+use App\Domain\Refunds\RefundPolicyInput;
 use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\RefundRequest;
-use App\Services\RefundRequestService;
+use DateTimeImmutable;
 use Illuminate\Database\Seeder;
 
 class SyntheticDataSeeder extends Seeder
@@ -75,17 +79,36 @@ class SyntheticDataSeeder extends Seeder
 
         foreach ($examples as [$orderNumber, $amount, $reason, $message]) {
             $order = Order::query()->where('order_number', $orderNumber)->firstOrFail();
-
-            RefundRequest::query()
-                ->where('order_id', $order->id)
-                ->where('customer_message', $message)
-                ->delete();
-
-            app(RefundRequestService::class)->create(
-                orderId: $order->id,
-                requestedAmount: $amount,
+            $requestedMoney = Money::fromDecimal($amount);
+            $decision = app(RefundPolicyEngine::class)->evaluate(new RefundPolicyInput(
+                orderedAt: DateTimeImmutable::createFromInterface($order->ordered_at),
+                evaluatedAt: DateTimeImmutable::createFromInterface(now()),
+                finalSale: $order->final_sale,
+                requestedAmountCents: $requestedMoney->cents,
                 reason: $reason,
-                customerMessage: $message,
+            ));
+
+            RefundRequest::query()->updateOrCreate(
+                [
+                    'order_id' => $order->id,
+                    'customer_message' => $message,
+                ],
+                [
+                    'customer_id' => $order->customer_id,
+                    'requested_amount' => $requestedMoney->toDecimal(),
+                    'reason' => $reason,
+                    'status' => $decision->outcome,
+                    'policy_reason_code' => $decision->reasonCode,
+                    'policy_explanation' => $decision->explanation,
+                    'ai_status' => AiAnalysisStatus::NotAnalyzed,
+                    'ai_analysis' => null,
+                    'ai_provider' => null,
+                    'ai_model' => null,
+                    'ai_error_code' => null,
+                    'policy_outcome' => $decision->outcome,
+                    'resolution_reason_code' => $decision->reasonCode->value,
+                    'resolution_explanation' => $decision->explanation,
+                ],
             );
         }
     }
