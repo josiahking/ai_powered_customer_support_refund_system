@@ -5,12 +5,16 @@ namespace Tests\Fakes;
 use App\Contracts\RefundAiAnalyzer;
 use App\Domain\Refunds\RefundAnalysis;
 use App\Domain\Refunds\RefundAnalysisInput;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class FakeRefundAiAnalyzer implements RefundAiAnalyzer
 {
     /** @var list<RefundAnalysisInput> */
     public array $inputs = [];
+
+    /** @var list<int> */
+    public array $transactionLevels = [];
 
     private ?Throwable $failure = null;
 
@@ -19,6 +23,7 @@ class FakeRefundAiAnalyzer implements RefundAiAnalyzer
     public function analyze(RefundAnalysisInput $input): RefundAnalysis
     {
         $this->inputs[] = $input;
+        $this->transactionLevels[] = DB::transactionLevel();
 
         if ($this->failure !== null) {
             throw $this->failure;

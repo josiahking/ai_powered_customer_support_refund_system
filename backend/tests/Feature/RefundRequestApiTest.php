@@ -10,6 +10,7 @@ use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Fakes\FakeRefundAiAnalyzer;
 use Tests\TestCase;
 
@@ -49,6 +50,11 @@ class RefundRequestApiTest extends TestCase
             'final_sale' => true,
             'total_amount' => '1.00',
             'ordered_at' => '2026-09-26',
+            'policy_outcome' => 'DENIED',
+            'suspicious' => true,
+            'conflicting_claims' => true,
+            'ai_status' => 'UNAVAILABLE',
+            'resolution_reason_code' => 'FINAL_SALE',
         ]);
 
         $response
@@ -115,6 +121,30 @@ class RefundRequestApiTest extends TestCase
         $response->assertUnprocessable()->assertJsonValidationErrors('requested_amount');
     }
 
+    #[DataProvider('invalidRequestedAmounts')]
+    public function test_negative_and_over_precision_amounts_fail_validation(string $amount): void
+    {
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->for($customer)->create(['total_amount' => '200.00']);
+
+        $response = $this->postJson('/api/refund-requests', [
+            'order_id' => $order->id,
+            'requested_amount' => $amount,
+            'reason' => 'DAMAGED',
+            'customer_message' => 'The item arrived damaged.',
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('requested_amount');
+    }
+
+    public static function invalidRequestedAmounts(): array
+    {
+        return [
+            'negative amount' => ['-10.00'],
+            'more than two decimal places' => ['10.001'],
+        ];
+    }
+
     public function test_amount_greater_than_order_total_fails_validation(): void
     {
         $customer = Customer::factory()->create();
@@ -156,5 +186,20 @@ class RefundRequestApiTest extends TestCase
         ]);
 
         $response->assertUnprocessable()->assertJsonValidationErrors('reason');
+    }
+
+    public function test_customer_message_over_two_thousand_characters_fails_validation(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->for($customer)->create();
+
+        $response = $this->postJson('/api/refund-requests', [
+            'order_id' => $order->id,
+            'requested_amount' => '20.00',
+            'reason' => 'DAMAGED',
+            'customer_message' => str_repeat('a', 2001),
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('customer_message');
     }
 }

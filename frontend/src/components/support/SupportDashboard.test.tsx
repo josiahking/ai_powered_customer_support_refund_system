@@ -4,6 +4,7 @@ import type { RefundRequestSummary } from "@/lib/types";
 import { SupportDashboard } from "./SupportDashboard";
 
 jest.mock("@/lib/api", () => ({
+  ApiError: class ApiError extends Error {},
   listRefundRequests: jest.fn(),
 }));
 
@@ -63,5 +64,12 @@ describe("SupportDashboard", () => {
 
     expect(await screen.findByText("Showing up to 50 recent requests")).toBeInTheDocument();
     expect(await screen.findByText(/no refund requests yet/i)).toBeInTheDocument();
+  });
+
+  it("renders a deliberate error state when the request list is unavailable", async () => {
+    listRefundRequestsMock.mockRejectedValue(new Error("network unavailable"));
+    render(<SupportDashboard />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/request list is unavailable/i);
   });
 });

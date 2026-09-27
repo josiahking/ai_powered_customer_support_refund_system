@@ -1,9 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
-import { getRefundRequest } from "@/lib/api";
+import { ApiError, getRefundRequest } from "@/lib/api";
 import type { RefundRequestDetail } from "@/lib/types";
 import { RefundDetailView } from "./RefundDetailView";
 
 jest.mock("@/lib/api", () => ({
+  ApiError: class ApiError extends Error {
+    constructor(message: string, public readonly status: number) {
+      super(message);
+    }
+  },
   getRefundRequest: jest.fn(),
 }));
 
@@ -105,5 +110,20 @@ describe("RefundDetailView", () => {
       expect(term).toBeDefined();
       expect(term?.closest("dl")).not.toBeNull();
     }
+  });
+
+  it("renders a not-found state for an unknown refund request", async () => {
+    getRefundRequestMock.mockRejectedValue(new ApiError("We could not find that record.", 404));
+    render(<RefundDetailView requestId="999" />);
+
+    expect(await screen.findByRole("heading", { name: "Request not found" })).toBeInTheDocument();
+  });
+
+  it("renders an unavailable state when the detail API fails", async () => {
+    getRefundRequestMock.mockRejectedValue(new ApiError("The service is unavailable.", 503));
+    render(<RefundDetailView requestId="28" />);
+
+    expect(await screen.findByRole("heading", { name: "Request unavailable" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("The service is unavailable.");
   });
 });

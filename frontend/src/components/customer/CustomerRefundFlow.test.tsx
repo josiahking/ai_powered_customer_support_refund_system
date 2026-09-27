@@ -61,6 +61,18 @@ const unavailableResult: RefundSubmission = {
   },
 };
 
+const deniedResult: RefundSubmission = {
+  ...approvedResult,
+  outcome: "DENIED",
+  reason_code: "FINAL_SALE",
+  explanation: "This order was marked final sale and is not eligible for a refund.",
+  policy: {
+    outcome: "DENIED",
+    reason_code: "FINAL_SALE",
+    explanation: "This order was marked final sale and is not eligible for a refund.",
+  },
+};
+
 const lookupOrderMock = jest.mocked(lookupOrder);
 const submitRefundRequestMock = jest.mocked(submitRefundRequest);
 
@@ -107,6 +119,66 @@ describe("CustomerRefundFlow", () => {
 
     expect(await screen.findByRole("heading", { name: "ESCALATED" })).toBeInTheDocument();
     expect(screen.getByText("A support specialist will review your request because automated analysis is temporarily unavailable.")).toBeInTheDocument();
+  });
+
+  it("shows a useful error when an order number is unknown", async () => {
+    lookupOrderMock.mockRejectedValue(new ApiError("We could not find that record. Check the number and try again.", 404));
+    render(<CustomerRefundFlow />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /order number/i }), {
+      target: { value: "WN-UNKNOWN" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /find order/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not find/i);
+  });
+
+  it("shows useful guidance when order lookup cannot reach the backend", async () => {
+    lookupOrderMock.mockRejectedValue(new ApiError("We could not reach the support service. Please try again.", 0));
+    render(<CustomerRefundFlow />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /order number/i }), {
+      target: { value: "WN-1001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /find order/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not reach the support service/i);
+  });
+
+  it("renders a denied outcome with its policy explanation", async () => {
+    lookupOrderMock.mockResolvedValue(order);
+    submitRefundRequestMock.mockResolvedValue(deniedResult);
+    render(<CustomerRefundFlow />);
+    await findOrder();
+    await submitMessage("The item is damaged.");
+
+    expect(await screen.findByRole("heading", { name: "DENIED" })).toBeInTheDocument();
+    expect(screen.getByText(deniedResult.explanation)).toBeInTheDocument();
+  });
+
+  it("does not submit twice while a refund request is still processing", async () => {
+    lookupOrderMock.mockResolvedValue(order);
+    let resolveSubmission!: (value: RefundSubmission) => void;
+    submitRefundRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveSubmission = resolve;
+    }));
+    render(<CustomerRefundFlow />);
+    await findOrder();
+
+    fireEvent.change(screen.getByRole("combobox", { name: /what best describes the issue/i }), {
+      target: { value: "DAMAGED" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /tell us what happened/i }), {
+      target: { value: "The speaker arrived cracked." },
+    });
+    const submitButton = screen.getByRole("button", { name: /submit refund request/i });
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    expect(submitRefundRequestMock).toHaveBeenCalledTimes(1);
+    expect(submitButton).toBeDisabled();
+    await act(async () => resolveSubmission(approvedResult));
+    expect(await screen.findByRole("heading", { name: "APPROVED" })).toBeInTheDocument();
   });
 
   it("displays a useful validation message returned by the API", async () => {
