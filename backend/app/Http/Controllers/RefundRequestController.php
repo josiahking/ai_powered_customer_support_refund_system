@@ -4,12 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Domain\Refunds\RefundReason;
 use App\Http\Requests\StoreRefundRequest;
+use App\Http\Resources\RefundRequestDetailResource;
+use App\Http\Resources\RefundRequestSummaryResource;
+use App\Models\RefundRequest as RefundRequestModel;
 use App\Services\RefundRequestService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class RefundRequestController extends Controller
 {
+    public function index(): JsonResponse
+    {
+        $requests = RefundRequestModel::query()
+            ->with(['customer:id,name', 'order:id,order_number,item_name'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'data' => RefundRequestSummaryResource::collection($requests)->resolve(),
+        ]);
+    }
+
+    public function show(RefundRequestModel $refundRequest): JsonResponse
+    {
+        $refundRequest->load(['customer:id,name', 'order:id,order_number,item_name,total_amount,ordered_at,final_sale']);
+
+        return response()->json((new RefundRequestDetailResource($refundRequest))->resolve());
+    }
+
     public function store(StoreRefundRequest $request, RefundRequestService $refundRequestService): JsonResponse
     {
         $refundRequest = $refundRequestService->create(

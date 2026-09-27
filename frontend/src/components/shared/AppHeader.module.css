@@ -1,0 +1,84 @@
+.header {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid rgba(32, 38, 36, 0.14);
+}
+
+.brand,
+.navigation {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 11px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.brandMark {
+  display: grid;
+  width: 31px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: var(--green);
+  font-family: Georgia, serif;
+  font-size: 17px;
+}
+
+.brandDivider {
+  padding: 0 4px;
+  color: var(--orange);
+}
+
+.navigation {
+  align-self: stretch;
+  gap: 26px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.navigation a {
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.navigation a:hover,
+.navigation .active {
+  color: var(--ink);
+  border-bottom-color: var(--orange);
+}
+
+.navigation a:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+}
+
+@media (max-width: 560px) {
+  .header {
+    min-height: 62px;
+    flex-wrap: wrap;
+    gap: 0 16px;
+  }
+
+  .brand {
+    min-height: 56px;
+    font-size: 10px;
+  }
+
+  .navigation {
+    width: 100%;
+    min-height: 42px;
+    gap: 20px;
+    font-size: 12px;
+  }
+}

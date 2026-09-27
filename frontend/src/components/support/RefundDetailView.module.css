@@ -1,0 +1,259 @@
+.page {
+  min-height: 100svh;
+  padding: 0 clamp(20px, 6vw, 88px) 72px;
+  background-image: linear-gradient(rgba(32, 38, 36, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 38, 36, 0.022) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.main {
+  width: min(100%, 1160px);
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 25px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.backLink:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 32px 0 25px;
+}
+
+.eyebrow,
+.sectionIndex {
+  color: var(--orange);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.heading h1 {
+  margin-top: 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 39px;
+  font-weight: 400;
+}
+
+.itemName {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auditGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.auditSection {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(32, 38, 36, 0.14);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.auditSection h2 {
+  margin-top: 7px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.facts,
+.providerFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px 18px;
+  margin-top: 20px;
+}
+
+.fact dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.fact dd {
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.finalSale {
+  margin-top: 15px;
+  color: #8b392d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.message {
+  margin-top: 18px;
+  padding: 14px;
+  border-left: 3px solid var(--orange);
+  color: var(--ink);
+  background: #f7f6ef;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.statusLine {
+  margin-top: 15px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.statusLine strong {
+  margin-left: 5px;
+  color: var(--ink);
+}
+
+.summaryText,
+.notice {
+  margin-top: 15px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.notice {
+  padding: 12px;
+  border-left: 3px solid var(--orange);
+  color: var(--muted);
+  background: #f7f6ef;
+}
+
+.signalRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px 24px;
+  margin-top: 16px;
+}
+
+.suggestion {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(32, 38, 36, 0.13);
+}
+
+.suggestion span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.suggestion p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.providerFacts {
+  padding-top: 13px;
+  border-top: 1px solid rgba(32, 38, 36, 0.13);
+}
+
+.decisionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reasonCode {
+  margin-top: 14px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.explanation {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.fallbackNote {
+  margin-top: 14px;
+  padding: 12px;
+  border-left: 3px solid var(--orange);
+  color: var(--ink);
+  background: #f7f6ef;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.resolutionSection {
+  border-top: 3px solid var(--green);
+}
+
+.state,
+.errorState {
+  margin-top: 35px;
+  padding: 24px;
+  border: 1px solid rgba(32, 38, 36, 0.15);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.errorState h1 {
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.errorState p {
+  margin-top: 7px;
+}
+
+@media (max-width: 760px) {
+  .auditGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .heading {
+    align-items: flex-start;
+  }
+
+  .heading h1 {
+    font-size: 32px;
+  }
+
+  .auditSection {
+    padding: 16px;
+  }
+
+  .facts,
+  .providerFacts {
+    grid-template-columns: 1fr 1fr;
+  }
+}

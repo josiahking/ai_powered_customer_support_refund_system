@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\RefundRequestController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -13,4 +14,7 @@ Route::get('/health', function () {
     ]);
 });
 
+Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
+Route::get('/refund-requests', [RefundRequestController::class, 'index']);
+Route::get('/refund-requests/{refundRequest}', [RefundRequestController::class, 'show']);
 Route::post('/refund-requests', [RefundRequestController::class, 'store']);

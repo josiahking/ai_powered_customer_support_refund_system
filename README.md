@@ -29,7 +29,7 @@ Open the frontend at [http://localhost:3000](http://localhost:3000). The backend
 
 Stop the services with `docker compose down`. To also remove the local PostgreSQL data volume, run `docker compose down -v`.
 
-**Status:** Phase 2 — Provider-neutral AI-assisted refund analysis and deterministic policy orchestration.
+**Status:** Phase 3 — Product UI with customer refund flow, support dashboard, and audit detail.
 
 ## Phase 1 — Refund foundation
 
@@ -50,3 +50,11 @@ Submit a request with `POST /api/refund-requests` using `order_id`, `requested_a
 The backend analyzes the customer message through a provider-neutral `RefundAiAnalyzer` and `LlmClient` contract. OpenAI Responses API is the configured initial provider, using strict structured output for classification, summary, risk signals, confidence, and a suggested response. The API key is never returned or logged; no AI SDK is installed, and automated tests use fakes/HTTP fakes without external calls.
 
 Configure `AI_PROVIDER`, `AI_MODEL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `AI_TIMEOUT_SECONDS` in the root environment file. Leave the key empty to exercise safe unavailable-provider behavior: hard policy denials remain denied and otherwise eligible requests are escalated for human review. AI interpretation and suggested wording are advisory; `RefundPolicyEngine` remains authoritative.
+
+## Phase 3 — Product UI
+
+- `/` customer order lookup and refund request flow
+- `/support` recent-request dashboard
+- `/support/refunds/{id}` refund and AI/policy/resolution audit detail
+
+The UI uses `GET /api/orders/{orderNumber}`, `GET /api/refund-requests`, and `GET /api/refund-requests/{id}` alongside the existing refund submission endpoint. The support dashboard is assessment-only and has no authentication.

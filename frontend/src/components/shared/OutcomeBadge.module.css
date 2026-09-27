@@ -1,0 +1,25 @@
+.badge {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.approved {
+  color: #176b4f;
+  background: #e2f0e8;
+}
+
+.denied {
+  color: #8b392d;
+  background: #f6e5df;
+}
+
+.escalated {
+  color: #7a5510;
+  background: #f6edce;
+}
