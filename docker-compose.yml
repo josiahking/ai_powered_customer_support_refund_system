@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-refund_system}
       POSTGRES_USER: ${POSTGRES_USER:-refund_app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_refund_password}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -28,11 +28,13 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${POSTGRES_DB:-refund_system}
       DB_USERNAME: ${POSTGRES_USER:-refund_app}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-local_refund_password}
       REFUND_WINDOW_DAYS: ${REFUND_WINDOW_DAYS:-30}
       REFUND_HIGH_VALUE_THRESHOLD_CENTS: ${REFUND_HIGH_VALUE_THRESHOLD_CENTS:-50000}
-      AI_PROVIDER: ${AI_PROVIDER:-openai}
-      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      AI_MODEL: ${AI_MODEL:-gemini-3.8-flash}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-20}

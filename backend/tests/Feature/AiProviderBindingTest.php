@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\Ai\LlmClient;
 use App\Contracts\RefundAiAnalyzer;
 use App\Infrastructure\Ai\LlmRefundAiAnalyzer;
+use App\Infrastructure\Ai\Providers\GeminiGenerateContentClient;
 use App\Infrastructure\Ai\Providers\OpenAiResponsesClient;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -22,6 +23,20 @@ class AiProviderBindingTest extends TestCase
         ]);
 
         $this->assertInstanceOf(OpenAiResponsesClient::class, $this->app->make(LlmClient::class));
+        $this->assertInstanceOf(LlmRefundAiAnalyzer::class, $this->app->make(RefundAiAnalyzer::class));
+    }
+
+    public function test_gemini_provider_is_resolved_from_central_configuration(): void
+    {
+        config([
+            'ai.provider' => 'gemini',
+            'ai.model' => 'gemini-3.8-flash',
+            'ai.timeout_seconds' => 5,
+            'ai.gemini.api_key' => '',
+            'ai.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        ]);
+
+        $this->assertInstanceOf(GeminiGenerateContentClient::class, $this->app->make(LlmClient::class));
         $this->assertInstanceOf(LlmRefundAiAnalyzer::class, $this->app->make(RefundAiAnalyzer::class));
     }
 

@@ -148,7 +148,7 @@ class RefundRequestService
         return [
             RefundOutcome::Escalated,
             $failureReasonCode,
-            $failureExplanation.' Human review is required; policy fallback was '.$policyDecision->reasonCode->value.'.',
+            $failureExplanation.' Human review is required while your request is reviewed against the refund policy.',
         ];
     }
 }

@@ -29,6 +29,8 @@ Open the frontend at [http://localhost:3000](http://localhost:3000). The backend
 
 Stop the services with `docker compose down`. To also remove the local PostgreSQL data volume, run `docker compose down -v`.
 
+Run the end-to-end suite from `frontend` with `npm run test:e2e`. The command starts the application with `docker-compose.e2e.yml`, which clears both AI keys and points Gemini to a local endpoint for deterministic offline tests.
+
 **Status:** Phase 3 — Product UI with customer refund flow, support dashboard, and audit detail.
 
 ## Phase 1 — Refund foundation

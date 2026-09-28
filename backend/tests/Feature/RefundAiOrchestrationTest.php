@@ -154,6 +154,15 @@ class RefundAiOrchestrationTest extends TestCase
             ->assertJsonPath('ai_analysis', null)
             ->assertJsonPath('policy.outcome', RefundOutcome::Denied->value)
             ->assertJsonPath('policy.reason_code', 'UNSUPPORTED_REASON');
+
+        $explanation = $response->json('explanation');
+
+        $this->assertStringContainsString('analysis service is unavailable', $explanation);
+        $this->assertStringContainsString('Human review is required', $explanation);
+        $this->assertStringNotContainsString('UNSUPPORTED_REASON', $explanation);
+        $this->assertStringNotContainsString('FINAL_SALE', $explanation);
+        $this->assertStringNotContainsString('REFUND_WINDOW_EXPIRED', $explanation);
+        $this->assertStringNotContainsString('HIGH_VALUE_REVIEW', $explanation);
     }
 
     public function test_malformed_provider_result_escalates_and_records_safe_error_code(): void
