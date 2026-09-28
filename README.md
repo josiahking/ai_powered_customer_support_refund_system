@@ -29,7 +29,7 @@ Open the frontend at [http://localhost:3000](http://localhost:3000). The backend
 
 Stop the services with `docker compose down`. To also remove the local PostgreSQL data volume, run `docker compose down -v`.
 
-Run the end-to-end suite from `frontend` with `npm run test:e2e`. The command starts the application with `docker-compose.e2e.yml`, which clears both AI keys and points Gemini to a local endpoint for deterministic offline tests.
+Run the end-to-end suite from `frontend` with `npm run test:e2e`. The command starts the application with `docker-compose.e2e.yml`, which clears both AI keys, points Gemini to a local endpoint, and configures deterministic test-only support credentials for offline tests.
 
 **Status:** Phase 3 — Product UI with customer refund flow, support dashboard, and audit detail.
 
@@ -59,4 +59,4 @@ Configure `AI_PROVIDER`, `AI_MODEL`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `A
 - `/support` recent-request dashboard
 - `/support/refunds/{id}` refund and AI/policy/resolution audit detail
 
-The UI uses `GET /api/orders/{orderNumber}`, `GET /api/refund-requests`, and `GET /api/refund-requests/{id}` alongside the existing refund submission endpoint. The support dashboard is assessment-only and has no authentication.
+The customer refund flow remains public. The support dashboard and audit detail require the single support credential configured with `SUPPORT_USERNAME` and `SUPPORT_PASSWORD`; an empty password disables support login. Automated E2E uses deterministic test-only credentials from `docker-compose.e2e.yml`. Keep real support credentials and AI keys out of Git.

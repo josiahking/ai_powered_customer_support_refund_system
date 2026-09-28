@@ -5,6 +5,8 @@ import path from "node:path";
 
 const frontendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(frontendDirectory, "..");
+const supportUsername = "e2e-support";
+const supportPassword = "e2e-local-only-password";
 const composeFiles = [
   "-f",
   path.join(repositoryRoot, "docker-compose.yml"),
@@ -45,6 +47,9 @@ const configCheck = `$values = [
   'gemini_key_configured' => trim((string) getenv('GEMINI_API_KEY')) !== '',
   'openai_key_configured' => trim((string) getenv('OPENAI_API_KEY')) !== '',
   'gemini_base_host' => parse_url((string) getenv('GEMINI_BASE_URL'), PHP_URL_HOST),
+  'app_key_configured' => trim((string) getenv('APP_KEY')) !== '',
+  'support_username' => getenv('SUPPORT_USERNAME'),
+  'support_password_configured' => trim((string) getenv('SUPPORT_PASSWORD')) !== '',
 ];
 echo json_encode($values, JSON_THROW_ON_ERROR);`;
 const configOutput = run("docker", [
@@ -70,12 +75,19 @@ if (
   || config.model !== "gemini-3.8-flash"
   || config.gemini_key_configured !== false
   || config.openai_key_configured !== false
+  || config.app_key_configured !== true
   || !["127.0.0.1", "localhost", "::1"].includes(config.gemini_base_host)
 ) {
   throw new Error("The backend E2E AI isolation settings did not match the required safe configuration.");
 }
 
 console.log("E2E AI isolation verified: provider=gemini, model=gemini-3.8-flash, Gemini key=missing, OpenAI key=missing, Gemini URL=local/non-public.");
+
+if (config.support_username !== supportUsername || config.support_password_configured !== true) {
+  throw new Error("The E2E support authentication settings are not configured as expected.");
+}
+
+console.log(`E2E support authentication verified: username=${supportUsername}, password=configured.`);
 
 async function waitFor(url, label) {
   const deadline = Date.now() + 120_000;
@@ -111,6 +123,47 @@ run("docker", [
 await waitFor("http://localhost:8000/api/orders/WN-1001", "seeded order WN-1001");
 console.log("Seeded fixture WN-1001 is available.");
 await waitFor("http://localhost:3000/", "Next.js frontend");
+
+const apiBaseUrl = "http://localhost:8000/api";
+const unauthenticatedList = await fetch(`${apiBaseUrl}/refund-requests`);
+const loginResponse = await fetch(`${apiBaseUrl}/support/login`, {
+  method: "POST",
+  headers: { Accept: "application/json", "Content-Type": "application/json" },
+  body: JSON.stringify({ username: supportUsername, password: supportPassword }),
+});
+const supportCookie = loginResponse.headers.get("set-cookie")?.split(";", 1)[0];
+
+if (unauthenticatedList.status !== 401 || loginResponse.status !== 200 || !supportCookie) {
+  throw new Error(`Support API login smoke failed (list=${unauthenticatedList.status}, login=${loginResponse.status}).`);
+}
+
+const authenticatedList = await fetch(`${apiBaseUrl}/refund-requests`, {
+  headers: { Accept: "application/json", Cookie: supportCookie },
+});
+console.log(`Support API access smoke: unauthenticated=${unauthenticatedList.status}, authenticated=${authenticatedList.status}.`);
+
+if (authenticatedList.status !== 200) {
+  throw new Error(`Authenticated support API smoke failed with status ${authenticatedList.status}.`);
+}
+
+const publicOrder = await fetch(`${apiBaseUrl}/orders/WN-1001`);
+if (!publicOrder.ok) throw new Error(`Public order lookup smoke failed with status ${publicOrder.status}.`);
+const order = await publicOrder.json();
+const publicSubmission = await fetch(`${apiBaseUrl}/refund-requests`, {
+  method: "POST",
+  headers: { Accept: "application/json", "Content-Type": "application/json" },
+  body: JSON.stringify({
+    order_id: order.id,
+    requested_amount: order.total_amount,
+    reason: "DAMAGED",
+    customer_message: "Public customer submission verification for the support access boundary.",
+  }),
+});
+console.log(`Public customer API smoke: order=${publicOrder.status}, refund submission=${publicSubmission.status}.`);
+
+if (publicSubmission.status !== 201) {
+  throw new Error(`Public customer refund submission smoke failed with status ${publicSubmission.status}.`);
+}
 
 const playwrightCli = path.join(frontendDirectory, "node_modules", "playwright", "cli.js");
 run(process.execPath, [playwrightCli, "test"], {

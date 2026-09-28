@@ -21,6 +21,10 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+
+  get isUnauthorized(): boolean {
+    return this.status === 401;
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -68,13 +72,32 @@ export function submitRefundRequest(input: {
   });
 }
 
+export function loginSupport(input: { username: string; password: string }): Promise<{ authenticated: true }> {
+  return request<{ authenticated: true }>("/support/login", {
+    method: "POST",
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+}
+
+export function logoutSupport(): Promise<{ authenticated: false }> {
+  return request<{ authenticated: false }>("/support/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+export function getSupportSession(): Promise<{ authenticated: true }> {
+  return request<{ authenticated: true }>("/support/session", { credentials: "include" });
+}
+
 export async function listRefundRequests(): Promise<RefundRequestSummary[]> {
-  const response = await request<{ data: RefundRequestSummary[] }>("/refund-requests");
+  const response = await request<{ data: RefundRequestSummary[] }>("/refund-requests", { credentials: "include" });
   return response.data;
 }
 
 export function getRefundRequest(id: string): Promise<RefundRequestDetail> {
-  return request<RefundRequestDetail>(`/refund-requests/${encodeURIComponent(id)}`);
+  return request<RefundRequestDetail>(`/refund-requests/${encodeURIComponent(id)}`, { credentials: "include" });
 }
 
 function validationMessage(errors: Record<string, string[]>): string {

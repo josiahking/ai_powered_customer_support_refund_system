@@ -1,6 +1,17 @@
 import { expect, test, type Page, type Response as PlaywrightResponse, type TestInfo } from "@playwright/test";
 
 const customerMessage = "The product arrived with the casing cracked.";
+const supportUsername = "e2e-support";
+const supportPassword = "e2e-local-only-password";
+
+async function loginAsSupport(page: Page, navigateToLogin = true): Promise<void> {
+  if (navigateToLogin) await page.goto("/support/login");
+
+  await page.getByLabel("Username").fill(supportUsername);
+  await page.getByLabel("Password").fill(supportPassword);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: "Support dashboard" })).toBeVisible();
+}
 
 async function submitRequest(page: Page, orderNumber: string, testInfo: TestInfo): Promise<PlaywrightResponse> {
   await page.goto("/");
@@ -25,11 +36,26 @@ test("customer receives a deterministic final-sale denial", async ({ page }, tes
   const result = await response.json();
 
   await expect(page.getByRole("region", { name: "Refund decision" })).toBeVisible();
+  expect(result.outcome).toBe("DENIED");
   await expect(page.getByRole("heading", { name: "DENIED" })).toBeVisible();
   await expect(page.getByText(/marked final sale/i)).toBeVisible();
   await expect(page.getByText(/final decision is determined by refund policy/i)).toBeVisible();
   expect(result.reason_code).toBe("FINAL_SALE");
   await page.screenshot({ path: testInfo.outputPath("denied-result.png"), fullPage: true });
+});
+
+test("support routes require authentication and support login and logout", async ({ page }) => {
+  await page.goto("/support");
+  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
+  await expect(page.getByRole("heading", { name: "Support sign in" })).toBeVisible();
+
+  await loginAsSupport(page, false);
+  await expect(page.getByRole("heading", { name: "Recent requests" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL("/support/login");
+  await page.goto("/support");
+  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
 });
 
 test("AI outage escalates and remains visible in the support audit", async ({ page }, testInfo) => {
@@ -38,12 +64,15 @@ test("AI outage escalates and remains visible in the support audit", async ({ pa
   const result = await response.json();
 
   expect(result.outcome).toBe("ESCALATED");
+  expect(result.reason_code).toBe("AI_ANALYSIS_UNAVAILABLE");
   expect(result.ai_analysis_status).toBe("UNAVAILABLE");
   await expect(page.getByRole("heading", { name: "ESCALATED" })).toBeVisible();
   await expect(page.getByText(/support specialist will review your request/i)).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("escalated-result.png"), fullPage: true });
 
   await page.goto("/support");
+  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
+  await loginAsSupport(page, false);
   await expect(page.getByRole("heading", { name: "Support dashboard" })).toBeVisible();
   await page.getByRole("link", { name: `#${result.id}` }).click();
   await expect(page).toHaveURL(new RegExp(`/support/refunds/${result.id}$`));
@@ -62,6 +91,7 @@ test("customer, dashboard, and audit routes fit desktop and mobile viewports", a
     if (message.type() === "error") pageErrors.push(message.text());
   });
 
+  await loginAsSupport(page);
   await page.goto("/support");
   const detailLink = page.locator('a[href^="/support/refunds/"]').first();
   await expect(detailLink).toBeVisible();

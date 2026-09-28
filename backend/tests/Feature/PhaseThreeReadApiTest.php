@@ -7,11 +7,25 @@ use App\Models\Order;
 use App\Models\RefundRequest;
 use Database\Seeders\SyntheticDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class PhaseThreeReadApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'support.username' => 'test-support',
+            'support.password' => 'test-only-support-password',
+            'support.auth_ttl_minutes' => 60,
+            'support.cookie_name' => 'refund_support_auth',
+            'support.cookie_secure' => false,
+        ]);
+    }
 
     public function test_order_lookup_returns_minimal_customer_facing_facts(): void
     {
@@ -58,7 +72,7 @@ class PhaseThreeReadApiTest extends TestCase
             $requests[] = $this->createRefundRequest($customer, $order, $index);
         }
 
-        $response = $this->getJson('/api/refund-requests');
+        $response = $this->supportGet('/api/refund-requests');
 
         $response->assertOk()->assertJsonCount(50, 'data');
         $data = $response->json('data');
@@ -78,7 +92,7 @@ class PhaseThreeReadApiTest extends TestCase
         $order = Order::query()->where('order_number', 'WN-1008')->firstOrFail();
         $refundRequest = RefundRequest::query()->where('order_id', $order->id)->firstOrFail();
 
-        $response = $this->getJson('/api/refund-requests/'.$refundRequest->id);
+        $response = $this->supportGet('/api/refund-requests/'.$refundRequest->id);
 
         $response
             ->assertOk()
@@ -100,7 +114,21 @@ class PhaseThreeReadApiTest extends TestCase
 
     public function test_unknown_refund_request_returns_not_found(): void
     {
-        $this->getJson('/api/refund-requests/999999')->assertNotFound();
+        $this->supportGet('/api/refund-requests/999999')->assertNotFound();
+    }
+
+    private function supportGet(string $uri): TestResponse
+    {
+        $login = $this->postJson('/api/support/login', [
+            'username' => 'test-support',
+            'password' => 'test-only-support-password',
+        ])->assertOk();
+
+        $cookie = $login->getCookie('refund_support_auth', false)->getValue();
+
+        return $this->withCredentials()
+            ->withUnencryptedCookie('refund_support_auth', $cookie)
+            ->getJson($uri);
     }
 
     private function createRefundRequest(Customer $customer, Order $order, int $index): RefundRequest

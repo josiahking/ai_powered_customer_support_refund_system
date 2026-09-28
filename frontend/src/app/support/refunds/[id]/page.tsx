@@ -1,4 +1,5 @@
 import { RefundDetailView } from "@/components/support/RefundDetailView";
+import { SupportAuthGate } from "@/components/support/SupportAuthGate";
 
 export default async function RefundDetailPage({
   params,
@@ -6,5 +7,9 @@ export default async function RefundDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <RefundDetailView requestId={id} />;
+  return (
+    <SupportAuthGate>
+      <RefundDetailView requestId={id} />
+    </SupportAuthGate>
+  );
 }

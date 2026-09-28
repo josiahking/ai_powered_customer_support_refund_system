@@ -1,8 +1,14 @@
 services:
   backend:
     environment:
+      APP_KEY: "base64:bG9jYWwtdGVzdC1hcHAta2V5LTMyLWJ5dGVzLWxvbmc="
       AI_PROVIDER: gemini
       AI_MODEL: gemini-3.8-flash
       GEMINI_API_KEY: ""
       GEMINI_BASE_URL: http://127.0.0.1:9
       OPENAI_API_KEY: ""
+      SUPPORT_USERNAME: e2e-support
+      SUPPORT_PASSWORD: e2e-local-only-password
+      SUPPORT_AUTH_TTL_MINUTES: 480
+      SUPPORT_COOKIE_SECURE: "false"
+      FRONTEND_URL: http://localhost:3000

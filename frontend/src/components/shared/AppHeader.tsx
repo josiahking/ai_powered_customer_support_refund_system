@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportSignOutButton } from "@/components/support/SupportSignOutButton";
 import styles from "./AppHeader.module.css";
 
 type AppHeaderProps = {
@@ -19,6 +20,7 @@ export function AppHeader({ active }: AppHeaderProps) {
         <Link className={active === "support" ? styles.active : undefined} href="/support">
           Support dashboard
         </Link>
+        {active === "support" && <SupportSignOutButton />}
       </nav>
     </header>
   );

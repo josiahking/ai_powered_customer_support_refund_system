@@ -12,6 +12,10 @@ jest.mock("@/lib/api", () => ({
   getRefundRequest: jest.fn(),
 }));
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: jest.fn() }),
+}));
+
 const detail: RefundRequestDetail = {
   id: 28,
   requested_amount: "40.00",

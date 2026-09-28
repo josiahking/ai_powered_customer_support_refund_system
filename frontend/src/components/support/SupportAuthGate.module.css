@@ -1,0 +1,18 @@
+.state {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.state button {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--green);
+  color: white;
+  background: var(--green);
+  font: inherit;
+  cursor: pointer;
+}

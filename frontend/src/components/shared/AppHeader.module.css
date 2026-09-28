@@ -44,7 +44,8 @@
   color: var(--muted);
 }
 
-.navigation a {
+.navigation a,
+.navigation button {
   display: flex;
   align-items: center;
   border-bottom: 2px solid transparent;
@@ -52,15 +53,39 @@
 }
 
 .navigation a:hover,
+.navigation button:hover:not(:disabled),
 .navigation .active {
   color: var(--ink);
   border-bottom-color: var(--orange);
 }
 
 .navigation a:focus-visible,
+.navigation button:focus-visible,
 .brand:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 4px;
+}
+
+.signOut {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.signOut:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.signOutError {
+  position: absolute;
+  top: 72px;
+  right: clamp(20px, 6vw, 88px);
+  color: #722d24;
+  font-size: 12px;
 }
 
 @media (max-width: 560px) {

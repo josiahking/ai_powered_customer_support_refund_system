@@ -1,0 +1,61 @@
+.page {
+  min-height: 100svh;
+  padding: 0 clamp(20px, 6vw, 88px) 64px;
+  background-image: linear-gradient(rgba(32, 38, 36, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 38, 36, 0.025) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.main {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding-top: clamp(48px, 10vh, 100px);
+}
+
+.panel {
+  padding: 30px 34px 34px;
+  border: 1px solid rgba(32, 38, 36, 0.14);
+  border-top: 3px solid var(--green);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 14px 40px rgba(32, 38, 36, 0.035);
+}
+
+.eyebrow {
+  color: var(--orange);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.panel h1 {
+  margin: 14px 0 10px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 38px;
+  font-weight: 400;
+}
+
+.description {
+  margin-bottom: 23px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .panel {
+    padding: 24px 20px 28px;
+  }
+
+  .panel h1 {
+    font-size: 33px;
+  }
+}

@@ -8,6 +8,10 @@ jest.mock("@/lib/api", () => ({
   listRefundRequests: jest.fn(),
 }));
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: jest.fn() }),
+}));
+
 const requests: RefundRequestSummary[] = [
   {
     id: 31,
