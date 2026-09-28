@@ -11,10 +11,13 @@ use App\Contracts\Ai\LlmRequest;
 use App\Contracts\Ai\LlmResponse;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use JsonException;
 
 class GeminiGenerateContentClient implements LlmClient
 {
+    private const MAX_ATTEMPTS = 3;
+
     public function __construct(
         private readonly string $apiKey,
         private readonly string $baseUrl,
@@ -28,32 +31,40 @@ class GeminiGenerateContentClient implements LlmClient
             throw new LlmUnavailableException;
         }
 
-        try {
-            $response = Http::baseUrl(rtrim($this->baseUrl, '/'))
-                ->acceptJson()
-                ->withHeaders(['x-goog-api-key' => $this->apiKey])
-                ->timeout($this->timeoutSeconds)
-                ->post('/models/'.rawurlencode($this->model).':generateContent', [
-                    'systemInstruction' => [
-                        'parts' => [['text' => $request->systemPrompt]],
-                    ],
-                    'contents' => [[
-                        'role' => 'user',
-                        'parts' => [[
-                            'text' => json_encode($request->userPromptContext, JSON_THROW_ON_ERROR),
+        for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
+            try {
+                $response = Http::baseUrl(rtrim($this->baseUrl, '/'))
+                    ->acceptJson()
+                    ->withHeaders(['x-goog-api-key' => $this->apiKey])
+                    ->timeout($this->timeoutSeconds)
+                    ->post('/models/'.rawurlencode($this->model).':generateContent', [
+                        'systemInstruction' => [
+                            'parts' => [['text' => $request->systemPrompt]],
+                        ],
+                        'contents' => [[
+                            'role' => 'user',
+                            'parts' => [[
+                                'text' => json_encode($request->userPromptContext, JSON_THROW_ON_ERROR),
+                            ]],
                         ]],
-                    ]],
-                    'generationConfig' => [
-                        'responseFormat' => [
-                            'text' => [
-                                'mimeType' => 'APPLICATION_JSON',
-                                'schema' => $schema->schema,
+                        'generationConfig' => [
+                            'responseFormat' => [
+                                'text' => [
+                                    'mimeType' => 'APPLICATION_JSON',
+                                    'schema' => $schema->schema,
+                                ],
                             ],
                         ],
-                    ],
-                ]);
-        } catch (ConnectionException|JsonException) {
-            throw new LlmUnavailableException;
+                    ]);
+            } catch (ConnectionException|JsonException) {
+                throw new LlmUnavailableException;
+            }
+
+            if ($response->status() !== 503 || $attempt === self::MAX_ATTEMPTS) {
+                break;
+            }
+
+            Sleep::sleep($attempt);
         }
 
         if ($response->status() === 429) {

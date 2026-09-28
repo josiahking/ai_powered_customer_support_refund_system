@@ -141,9 +141,9 @@ export function CustomerRefundFlow() {
                     <div><dt>Order total</dt><dd>{formatCurrency(order.total_amount)}</dd></div>
                     <div><dt>Placed</dt><dd>{formatDate(order.ordered_at)}</dd></div>
                   </dl>
-                  <p className={order.final_sale ? styles.finalSale : styles.saleStatus}>
-                    Final sale: {order.final_sale ? "Yes" : "No"}
-                  </p>
+                  {order.final_sale && (
+                    <p className={styles.finalSale}>Final sale — this item is not refundable.</p>
+                  )}
                 </section>
 
                 <form className={styles.requestForm} onSubmit={handleSubmit} aria-label="Refund request">
@@ -190,13 +190,13 @@ export function CustomerRefundFlow() {
                     maxLength={2000}
                     required
                   />
-                  <p className={styles.helper}>Your message is analyzed to understand the issue. Refund eligibility is decided by policy.</p>
+                  <p className={styles.helper}>We’ll review your message and apply our refund policy.</p>
 
                   {submitError && <p className={styles.error} role="alert">{submitError}</p>}
                   {isSubmitting && (
                     <p className={styles.processing} role="status" aria-live="polite">
                       <span className={styles.processingMark} aria-hidden="true" />
-                      <span><strong>Analyzing your request…</strong><br />Checking your message and refund policy.</span>
+                      <span><strong>Reviewing your request…</strong><br />Checking your message against our refund policy.</span>
                     </p>
                   )}
 
@@ -229,35 +229,20 @@ function RefundResult({
     DENIED: "Your request does not meet the refund policy requirements.",
     ESCALATED: "Your request needs review by a support specialist.",
   };
-  const unavailable = result.ai_analysis_status !== "ANALYZED";
+  const escalated = result.outcome === "ESCALATED";
 
   return (
     <section className={styles.result} aria-live="polite" aria-label="Refund decision">
       <p className={styles.sectionIndex}>03 / REQUEST REVIEW</p>
       <OutcomeBadge outcome={result.outcome} />
       <h2>{result.outcome}</h2>
-      <p className={styles.resultExplanation}>{result.explanation}</p>
-      <p className={styles.nextStep}>{unavailable && result.outcome === "ESCALATED"
-        ? "A support specialist will review your request because automated analysis is temporarily unavailable."
+      <p className={styles.resultExplanation}>{escalated
+        ? "Your request needs a closer look before we can make a decision."
+        : result.explanation}</p>
+      <p className={styles.nextStep}>{escalated
+        ? "A support specialist will review your request."
         : nextStep[result.outcome]}</p>
       <p className={styles.authorityNote}>Final decision is determined by refund policy.</p>
-
-      <section className={styles.aiResult} aria-label="AI analysis">
-        <p className={styles.sectionIndex}>MESSAGE ANALYSIS</p>
-        <h3>AI interpretation</h3>
-        {result.ai_analysis ? (
-          <>
-            <p><strong>Issue identified</strong><br />{result.ai_analysis.classified_reason.replaceAll("_", " ")}</p>
-            <p>{result.ai_analysis.summary}</p>
-            <p className={styles.suggestedResponse}><strong>Suggested response</strong><br />{result.ai_analysis.suggested_response}</p>
-          </>
-        ) : (
-          <p>{result.ai_analysis_status === "UNAVAILABLE"
-            ? "Automated analysis is temporarily unavailable. Your request is being handled according to the policy fallback above."
-            : `Message analysis status: ${result.ai_analysis_status.toLowerCase().replaceAll("_", " ")}.`}</p>
-        )}
-        <p className={styles.authorityNote}>The analysis supports the review; it does not make the refund decision.</p>
-      </section>
 
       <button className={styles.secondaryButton} onClick={onReset} type="button">Start another request</button>
       <span className={styles.itemContext}>Request for {itemName}</span>

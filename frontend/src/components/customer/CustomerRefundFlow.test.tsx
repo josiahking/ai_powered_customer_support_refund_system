@@ -22,6 +22,13 @@ const order: Order = {
   final_sale: false,
 };
 
+const finalSaleOrder: Order = {
+  ...order,
+  order_number: "WN-1008",
+  item_name: "Clearance Headphones",
+  final_sale: true,
+};
+
 const approvedResult: RefundSubmission = {
   id: 12,
   customer_id: 1,
@@ -93,11 +100,24 @@ describe("CustomerRefundFlow", () => {
     expect(await screen.findByRole("heading", { name: "Wireless Speaker" })).toBeInTheDocument();
     expect(screen.getByText("WN-1001")).toBeInTheDocument();
     expect(screen.getByText("$89.90")).toBeInTheDocument();
-    expect(screen.getByText("Final sale: No")).toBeInTheDocument();
+    expect(screen.queryByText(/final sale/i)).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /tell us what happened/i })).toBeInTheDocument();
   });
 
-  it("shows the final approval and advisory AI interpretation after submission", async () => {
+  it("warns customers when an order is final sale", async () => {
+    lookupOrderMock.mockResolvedValue(finalSaleOrder);
+    render(<CustomerRefundFlow />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /order number/i }), {
+      target: { value: "WN-1008" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /find order/i }));
+
+    expect(await screen.findByRole("heading", { name: "Clearance Headphones" })).toBeInTheDocument();
+    expect(screen.getByText("Final sale — this item is not refundable.")).toBeInTheDocument();
+  });
+
+  it("shows the final approval without exposing AI analysis after submission", async () => {
     lookupOrderMock.mockResolvedValue(order);
     submitRefundRequestMock.mockResolvedValue(approvedResult);
     render(<CustomerRefundFlow />);
@@ -106,11 +126,16 @@ describe("CustomerRefundFlow", () => {
 
     expect(await screen.findByRole("heading", { name: "APPROVED" })).toBeInTheDocument();
     expect(screen.getByText(approvedResult.explanation)).toBeInTheDocument();
-    expect(screen.getByText("The speaker arrived with a cracked case.")).toBeInTheDocument();
+    expect(screen.queryByText("AI interpretation")).not.toBeInTheDocument();
+    expect(screen.queryByText("MESSAGE ANALYSIS")).not.toBeInTheDocument();
+    expect(screen.queryByText("The speaker arrived with a cracked case.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Issue identified|Suggested response/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("We are sorry the speaker arrived damaged.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ANALYZED|provider|model|classification|confidence|suspicious|conflicting/i)).not.toBeInTheDocument();
     expect(screen.getByText(/final decision is determined by refund policy/i)).toBeInTheDocument();
   });
 
-  it("shows human-review guidance for AI-unavailable escalation", async () => {
+  it("shows a customer-safe escalation without AI operational messaging", async () => {
     lookupOrderMock.mockResolvedValue(order);
     submitRefundRequestMock.mockResolvedValue(unavailableResult);
     render(<CustomerRefundFlow />);
@@ -118,7 +143,12 @@ describe("CustomerRefundFlow", () => {
     await submitMessage("The speaker arrived cracked.");
 
     expect(await screen.findByRole("heading", { name: "ESCALATED" })).toBeInTheDocument();
-    expect(screen.getByText("A support specialist will review your request because automated analysis is temporarily unavailable.")).toBeInTheDocument();
+    expect(screen.getByText("Your request needs a closer look before we can make a decision.")).toBeInTheDocument();
+    expect(screen.getByText("A support specialist will review your request.")).toBeInTheDocument();
+    expect(screen.queryByText(/AI interpretation/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/MESSAGE ANALYSIS/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Automated analysis is temporarily unavailable/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/The analysis supports the review/i)).not.toBeInTheDocument();
   });
 
   it("shows a useful error when an order number is unknown", async () => {

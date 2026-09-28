@@ -67,7 +67,9 @@ test("AI outage escalates and remains visible in the support audit", async ({ pa
   expect(result.reason_code).toBe("AI_ANALYSIS_UNAVAILABLE");
   expect(result.ai_analysis_status).toBe("UNAVAILABLE");
   await expect(page.getByRole("heading", { name: "ESCALATED" })).toBeVisible();
-  await expect(page.getByText(/support specialist will review your request/i)).toBeVisible();
+  await expect(page.getByText("Your request needs a closer look before we can make a decision.")).toBeVisible();
+  await expect(page.getByText("A support specialist will review your request.")).toBeVisible();
+  await expect(page.getByText(/AI interpretation|MESSAGE ANALYSIS|Automated analysis is temporarily unavailable|The analysis supports the review/i)).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("escalated-result.png"), fullPage: true });
 
   await page.goto("/support");
