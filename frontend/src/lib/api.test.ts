@@ -4,7 +4,7 @@ import {
   listRefundRequests,
   loginSupport,
   logoutSupport,
-  lookupOrder,
+  verifyOrder,
   submitRefundRequest,
 } from "./api";
 
@@ -34,15 +34,27 @@ describe("support API credentials", () => {
   });
 
   it("leaves public customer requests without forced credentials", async () => {
-    await lookupOrder("WN-1001");
+    await verifyOrder("WN-1001", "avery.bennett@example.test");
     await submitRefundRequest({
-      order_id: 1,
+      order_access_token: "opaque-test-capability",
       requested_amount: "25.00",
       reason: "DAMAGED",
       customer_message: "The item arrived damaged.",
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toContain("/orders/verify");
+    expect(fetchMock.mock.calls[0][1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[0][1]?.body).toBe(JSON.stringify({
+      order_number: "WN-1001",
+      email: "avery.bennett@example.test",
+    }));
+    expect(fetchMock.mock.calls[1][1]?.body).toBe(JSON.stringify({
+      order_access_token: "opaque-test-capability",
+      requested_amount: "25.00",
+      reason: "DAMAGED",
+      customer_message: "The item arrived damaged.",
+    }));
     for (const [, options] of fetchMock.mock.calls) {
       expect(options?.credentials).not.toBe("include");
     }

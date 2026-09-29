@@ -65,6 +65,7 @@ For Gemini HTTP 503 responses, the client makes at most three total attempts, wa
 ## Security
 
 - Customer text is untrusted model input; the model has no policy authority.
+- Customers verify an order using its order number and order email. Successful verification returns a short-lived encrypted capability bound to the order/customer relationship; refund submission does not trust a browser-supplied order ID. This verifies order access and is not a customer account or login.
 - Raw provider errors are converted to provider-neutral errors and are not shown to customers.
 - Customer screens show the outcome, customer-safe explanation, next step, and relevant restrictions. They do not show provider, model, confidence, risk flags, AI status, or internal error codes.
 - Ordinary orders show no final-sale label. Final-sale orders show: "Final sale - this item is not refundable."
@@ -112,6 +113,7 @@ The primary local Docker setup reads variables from the repository-root `.env`. 
 | `POSTGRES_PASSWORD` | Local example value | Basic local app; Compose database |
 | `REFUND_WINDOW_DAYS` | `30` | Basic local app; policy setting |
 | `REFUND_HIGH_VALUE_THRESHOLD_CENTS` | `50000` | Basic local app; policy setting |
+| `ORDER_ACCESS_TTL_MINUTES` | `15` | Customer order verification lifetime (clamped to 1-60 minutes) |
 | `AI_PROVIDER` | `gemini` | Optional live AI; `gemini` or `openai` |
 | `AI_MODEL` | `gemini-3.8-flash` | Optional live AI; selected provider model |
 | `AI_TIMEOUT_SECONDS` | `20` | Optional live AI; provider timeout |
@@ -145,13 +147,13 @@ The synthetic seeder is safe to rerun and creates customer profiles, orders, and
 
 ## Support login
 
-The customer workflow is public. Support sign-in uses one environment-backed identity for this challenge scope. Set `SUPPORT_USERNAME` and a non-empty `SUPPORT_PASSWORD` locally; never commit a real password.
+The customer workflow is public. Customers enter an order number and its email to verify the order before requesting a refund. Support sign-in uses one environment-backed identity for this challenge scope. Set `SUPPORT_USERNAME` and a non-empty `SUPPORT_PASSWORD` locally; never commit a real password.
 
 - `/support/login` signs in.
 - `/support` shows recent refund requests.
 - `/support/refunds/{id}` shows request and policy audit detail.
 
-The Laravel API issues an encrypted auth token in an `HttpOnly`, `SameSite=Lax` cookie with a finite configurable TTL. `SUPPORT_COOKIE_SECURE` controls the Secure attribute. Login is rate-limited to five attempts per minute. Support session, list, and detail reads require authentication; health, order lookup, and customer refund submission are public.
+The Laravel API issues an encrypted auth token in an `HttpOnly`, `SameSite=Lax` cookie with a finite configurable TTL. `SUPPORT_COOKIE_SECURE` controls the Secure attribute. Login is rate-limited to five attempts per minute. Support session, list, and detail reads require authentication; health, rate-limited order verification, and customer refund submission are public.
 
 ## API
 
@@ -160,7 +162,7 @@ All routes are under `/api`. "Support cookie" means the encrypted support auth c
 | Method | Endpoint | Auth | Purpose |
 |---|---|---|---|
 | `GET` | `/api/health` | Public | Database-aware service health |
-| `GET` | `/api/orders/{orderNumber}` | Public | Look up an order for the customer flow |
+| `POST` | `/api/orders/verify` | Public; rate-limited | Verify order number and email; return safe order details and short-lived access token |
 | `POST` | `/api/refund-requests` | Public | Submit a customer refund request |
 | `POST` | `/api/support/login` | Credentials | Authenticate and set the support cookie |
 | `POST` | `/api/support/logout` | Public; clears cookie | Sign out the current browser |
@@ -168,7 +170,7 @@ All routes are under `/api`. "Support cookie" means the encrypted support auth c
 | `GET` | `/api/refund-requests` | Support cookie | List recent requests (bounded to 50) |
 | `GET` | `/api/refund-requests/{id}` | Support cookie | Read request and audit detail |
 
-Refund submission accepts `order_id`, `requested_amount`, a reason hint (`DAMAGED`, `INCORRECT_ITEM`, or `OTHER`), and `customer_message`. The server loads authoritative order facts.
+Refund submission accepts `order_access_token`, `requested_amount`, a reason hint (`DAMAGED`, `INCORRECT_ITEM`, or `OTHER`), and `customer_message`. Laravel resolves the verified order/customer relationship from the encrypted token; `order_id` and `customer_id` are not accepted from the browser.
 
 ## Testing
 

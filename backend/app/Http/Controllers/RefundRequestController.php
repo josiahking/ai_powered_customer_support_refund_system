@@ -6,7 +6,9 @@ use App\Domain\Refunds\RefundReason;
 use App\Http\Requests\StoreRefundRequest;
 use App\Http\Resources\RefundRequestDetailResource;
 use App\Http\Resources\RefundRequestSummaryResource;
+use App\Models\Order;
 use App\Models\RefundRequest as RefundRequestModel;
+use App\Services\OrderAccessToken;
 use App\Services\RefundRequestService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,10 +36,26 @@ class RefundRequestController extends Controller
         return response()->json((new RefundRequestDetailResource($refundRequest))->resolve());
     }
 
-    public function store(StoreRefundRequest $request, RefundRequestService $refundRequestService): JsonResponse
-    {
+    public function store(
+        StoreRefundRequest $request,
+        OrderAccessToken $tokens,
+        RefundRequestService $refundRequestService,
+    ): JsonResponse {
+        $claims = $tokens->claims($request->validated('order_access_token'));
+        $order = $claims === null ? null : Order::query()
+            ->whereKey($claims['order_id'])
+            ->where('customer_id', $claims['customer_id'])
+            ->first();
+
+        if ($order === null) {
+            return response()->json([
+                'message' => 'Order verification is invalid or has expired. Verify your order again.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         $refundRequest = $refundRequestService->create(
-            orderId: (int) $request->validated('order_id'),
+            orderId: $order->id,
+            customerId: $order->customer_id,
             requestedAmount: (string) $request->validated('requested_amount'),
             reason: RefundReason::from($request->validated('reason')),
             customerMessage: $request->validated('customer_message'),
@@ -45,8 +63,6 @@ class RefundRequestController extends Controller
 
         return response()->json([
             'id' => $refundRequest->id,
-            'customer_id' => $refundRequest->customer_id,
-            'order_id' => $refundRequest->order_id,
             'outcome' => $refundRequest->status->value,
             'reason_code' => $refundRequest->resolution_reason_code,
             'explanation' => $refundRequest->resolution_explanation,

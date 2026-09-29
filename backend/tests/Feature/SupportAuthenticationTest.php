@@ -8,6 +8,7 @@ use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\RefundRequest;
+use App\Services\OrderAccessToken;
 use Database\Seeders\SyntheticDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
@@ -59,7 +60,7 @@ class SupportAuthenticationTest extends TestCase
         $customer = Customer::factory()->create();
         $order = Order::factory()->for($customer)->create(['order_number' => 'WN-PUBLIC']);
 
-        $this->getJson('/api/orders/'.$order->order_number)->assertOk();
+        $this->getJson('/api/orders/'.$order->order_number)->assertNotFound();
     }
 
     public function test_customer_refund_submission_remains_public(): void
@@ -72,7 +73,7 @@ class SupportAuthenticationTest extends TestCase
         ]);
 
         $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '25.00',
             'reason' => 'DAMAGED',
             'customer_message' => 'The item arrived damaged.',

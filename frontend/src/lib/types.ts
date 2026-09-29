@@ -11,6 +11,14 @@ export type Order = {
   final_sale: boolean;
 };
 
+export type CustomerOrder = Omit<Order, "id">;
+
+export type VerifiedOrderResponse = {
+  order: CustomerOrder;
+  order_access_token: string;
+  expires_in_minutes: number;
+};
+
 export type AiAnalysis = {
   classified_reason: RefundReason;
   summary: string;
@@ -28,8 +36,6 @@ export type PolicyResult = {
 
 export type RefundSubmission = {
   id: number;
-  customer_id: number;
-  order_id: number;
   outcome: RefundOutcome;
   reason_code: string;
   explanation: string;

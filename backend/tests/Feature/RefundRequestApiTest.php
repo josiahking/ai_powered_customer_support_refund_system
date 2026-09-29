@@ -9,6 +9,7 @@ use App\Domain\Refunds\RefundPolicyReasonCode;
 use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Services\OrderAccessToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Fakes\FakeRefundAiAnalyzer;
@@ -43,7 +44,7 @@ class RefundRequestApiTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '120.00',
             'reason' => 'DAMAGED',
             'customer_message' => 'The item arrived damaged.',
@@ -82,7 +83,7 @@ class RefundRequestApiTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '120.00',
             'reason' => 'DAMAGED',
             'customer_message' => 'The item arrived damaged.',
@@ -99,12 +100,11 @@ class RefundRequestApiTest extends TestCase
     public function test_missing_order_fails_validation(): void
     {
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => 999999,
             'requested_amount' => '20.00',
             'reason' => 'DAMAGED',
         ]);
 
-        $response->assertUnprocessable()->assertJsonValidationErrors('order_id');
+        $response->assertUnprocessable()->assertJsonValidationErrors('order_access_token');
     }
 
     public function test_zero_amount_fails_validation(): void
@@ -113,7 +113,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create(['total_amount' => '200.00']);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '0.00',
             'reason' => 'DAMAGED',
         ]);
@@ -128,7 +128,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create(['total_amount' => '200.00']);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => $amount,
             'reason' => 'DAMAGED',
             'customer_message' => 'The item arrived damaged.',
@@ -151,7 +151,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create(['total_amount' => '200.00']);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '200.01',
             'reason' => 'DAMAGED',
             'customer_message' => 'The item arrived damaged.',
@@ -166,7 +166,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create(['total_amount' => '200.00']);
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '9999999999999999999999999999.00',
             'reason' => 'DAMAGED',
         ]);
@@ -180,7 +180,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create();
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '20.00',
             'reason' => 'UNRECOGNIZED',
         ]);
@@ -194,7 +194,7 @@ class RefundRequestApiTest extends TestCase
         $order = Order::factory()->for($customer)->create();
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '20.00',
             'reason' => 'DAMAGED',
             'customer_message' => str_repeat('a', 2001),

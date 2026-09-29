@@ -1,5 +1,5 @@
 import type {
-  Order,
+  VerifiedOrderResponse,
   RefundReason,
   RefundRequestDetail,
   RefundRequestSummary,
@@ -44,11 +44,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const failure = payload as ApiFailure | null;
     const fieldErrors = failure?.errors ?? {};
-    const message = response.status === 404
-      ? "We could not find that record. Check the number and try again."
-      : response.status === 422
-        ? validationMessage(fieldErrors)
-        : "The support service could not complete that request. Please try again.";
+    const message = response.status === 404 && path === "/orders/verify"
+      ? "We could not verify that order. Check the order number and email and try again."
+      : response.status === 404
+        ? "We could not find that record. Check the number and try again."
+        : response.status === 403 && path === "/refund-requests"
+        ? "Your order verification has expired. Verify the order again before submitting."
+        : response.status === 422
+          ? validationMessage(fieldErrors)
+          : "The support service could not complete that request. Please try again.";
 
     throw new ApiError(message, response.status, fieldErrors);
   }
@@ -56,12 +60,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
-export function lookupOrder(orderNumber: string): Promise<Order> {
-  return request<Order>(`/orders/${encodeURIComponent(orderNumber)}`);
+export function verifyOrder(orderNumber: string, email: string): Promise<VerifiedOrderResponse> {
+  return request<VerifiedOrderResponse>("/orders/verify", {
+    method: "POST",
+    body: JSON.stringify({ order_number: orderNumber, email }),
+  });
 }
 
 export function submitRefundRequest(input: {
-  order_id: number;
+  order_access_token: string;
   requested_amount: string;
   reason: RefundReason;
   customer_message: string;
@@ -104,7 +111,7 @@ function validationMessage(errors: Record<string, string[]>): string {
   if (errors.customer_message) return "Please describe the issue in a short message.";
   if (errors.requested_amount) return "Enter a refund amount that does not exceed the order total.";
   if (errors.reason) return "Choose one of the listed issue types.";
-  if (errors.order_id) return "Find a valid order before submitting your request.";
+  if (errors.order_access_token) return "Verify your order before submitting your request.";
 
   return "Please check the information and try again.";
 }

@@ -120,11 +120,43 @@ run("docker", [
   "--force",
 ], { stdio: "inherit" });
 
-await waitFor("http://localhost:8000/api/orders/WN-1001", "seeded order WN-1001");
-console.log("Seeded fixture WN-1001 is available.");
+const apiBaseUrl = "http://localhost:8000/api";
+const verifyHeaders = { Accept: "application/json", "Content-Type": "application/json" };
+const verifiedOrderResponse = await fetch(`${apiBaseUrl}/orders/verify`, {
+  method: "POST",
+  headers: verifyHeaders,
+  body: JSON.stringify({ order_number: "WN-1001", email: "avery.bennett@example.test" }),
+});
+if (!verifiedOrderResponse.ok) throw new Error(`Seeded order verification failed with status ${verifiedOrderResponse.status}.`);
+const verifiedOrder = await verifiedOrderResponse.json();
+if (!verifiedOrder.order_access_token || verifiedOrder.order?.order_number !== "WN-1001") {
+  throw new Error("Seeded order verification returned an unexpected response.");
+}
+const wrongEmailResponse = await fetch(`${apiBaseUrl}/orders/verify`, {
+  method: "POST",
+  headers: verifyHeaders,
+  body: JSON.stringify({ order_number: "WN-1001", email: "wrong.customer@example.test" }),
+});
+const unknownOrderResponse = await fetch(`${apiBaseUrl}/orders/verify`, {
+  method: "POST",
+  headers: verifyHeaders,
+  body: JSON.stringify({ order_number: "WN-9999", email: "wrong.customer@example.test" }),
+});
+const oldLookupResponse = await fetch(`${apiBaseUrl}/orders/WN-1001`);
+const wrongEmailBody = await wrongEmailResponse.json();
+const unknownOrderBody = await unknownOrderResponse.json();
+if (
+  wrongEmailResponse.status !== 404
+  || unknownOrderResponse.status !== 404
+  || wrongEmailBody.message !== "We could not verify that order. Check the order number and email and try again."
+  || JSON.stringify(wrongEmailBody) !== JSON.stringify(unknownOrderBody)
+  || oldLookupResponse.ok
+) {
+  throw new Error("Order ownership or legacy lookup smoke failed.");
+}
+console.log("Seeded order verification and legacy lookup protection verified.");
 await waitFor("http://localhost:3000/", "Next.js frontend");
 
-const apiBaseUrl = "http://localhost:8000/api";
 const unauthenticatedList = await fetch(`${apiBaseUrl}/refund-requests`);
 const loginResponse = await fetch(`${apiBaseUrl}/support/login`, {
   method: "POST",
@@ -146,24 +178,32 @@ if (authenticatedList.status !== 200) {
   throw new Error(`Authenticated support API smoke failed with status ${authenticatedList.status}.`);
 }
 
-const publicOrder = await fetch(`${apiBaseUrl}/orders/WN-1001`);
-if (!publicOrder.ok) throw new Error(`Public order lookup smoke failed with status ${publicOrder.status}.`);
-const order = await publicOrder.json();
 const publicSubmission = await fetch(`${apiBaseUrl}/refund-requests`, {
   method: "POST",
-  headers: { Accept: "application/json", "Content-Type": "application/json" },
+  headers: verifyHeaders,
   body: JSON.stringify({
-    order_id: order.id,
-    requested_amount: order.total_amount,
+    order_access_token: verifiedOrder.order_access_token,
+    requested_amount: verifiedOrder.order.total_amount,
     reason: "DAMAGED",
     customer_message: "Public customer submission verification for the support access boundary.",
   }),
 });
-console.log(`Public customer API smoke: order=${publicOrder.status}, refund submission=${publicSubmission.status}.`);
+console.log(`Public customer API smoke: verified order=${verifiedOrderResponse.status}, refund submission=${publicSubmission.status}.`);
 
 if (publicSubmission.status !== 201) {
   throw new Error(`Public customer refund submission smoke failed with status ${publicSubmission.status}.`);
 }
+
+run("docker", [
+  "compose",
+  ...composeFiles,
+  "exec",
+  "-T",
+  "backend",
+  "php",
+  "artisan",
+  "cache:clear",
+]);
 
 const playwrightCli = path.join(frontendDirectory, "node_modules", "playwright", "cli.js");
 run(process.execPath, [playwrightCli, "test"], {

@@ -9,14 +9,21 @@ async function loginAsSupport(page: Page, navigateToLogin = true): Promise<void>
 
   await page.getByLabel("Username").fill(supportUsername);
   await page.getByLabel("Password").fill(supportPassword);
+  const loginResponse = page.waitForResponse((response) =>
+    response.request().method() === "POST" && new URL(response.url()).pathname === "/api/support/login",
+  );
   await page.getByRole("button", { name: "Sign in" }).click();
+  const response = await loginResponse;
+  expect(response.status(), "support login API response").toBe(200);
   await expect(page.getByRole("heading", { name: "Support dashboard" })).toBeVisible();
 }
 
 async function submitRequest(page: Page, orderNumber: string, testInfo: TestInfo): Promise<PlaywrightResponse> {
   await page.goto("/");
   await page.getByLabel("Order number").fill(orderNumber);
-  await page.getByRole("button", { name: "Find order" }).click();
+  const email = orderNumber === "WN-1008" ? "jamie.hall@example.test" : "avery.bennett@example.test";
+  await page.getByLabel("Email used for this order").fill(email);
+  await page.getByRole("button", { name: "Verify order" }).click();
   await expect(page.getByRole("region", { name: "Order found" })).toBeVisible();
 
   await page.getByLabel(/What best describes the issue/).selectOption("DAMAGED");
@@ -29,6 +36,17 @@ async function submitRequest(page: Page, orderNumber: string, testInfo: TestInfo
   await page.getByRole("button", { name: "Submit refund request" }).click();
   return responsePromise;
 }
+
+test("wrong order email does not reveal order details", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Order number").fill("WN-1001");
+  await page.getByLabel("Email used for this order").fill("wrong.customer@example.test");
+  await page.getByRole("button", { name: "Verify order" }).click();
+
+  await expect(page.locator("main").getByRole("alert")).toHaveText("We could not verify that order. Check the order number and email and try again.");
+  await expect(page.getByRole("region", { name: "Order found" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Wireless Speaker" })).toHaveCount(0);
+});
 
 test("customer receives a deterministic final-sale denial", async ({ page }, testInfo) => {
   const response = await submitRequest(page, "WN-1008", testInfo);
@@ -44,21 +62,13 @@ test("customer receives a deterministic final-sale denial", async ({ page }, tes
   await page.screenshot({ path: testInfo.outputPath("denied-result.png"), fullPage: true });
 });
 
-test("support routes require authentication and support login and logout", async ({ page }) => {
-  await page.goto("/support");
-  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
-  await expect(page.getByRole("heading", { name: "Support sign in" })).toBeVisible();
+test("support authentication, audit, and responsive routes remain intact", async ({ page }, testInfo) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") pageErrors.push(message.text());
+  });
 
-  await loginAsSupport(page, false);
-  await expect(page.getByRole("heading", { name: "Recent requests" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Sign out" }).click();
-  await expect(page).toHaveURL("/support/login");
-  await page.goto("/support");
-  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
-});
-
-test("AI outage escalates and remains visible in the support audit", async ({ page }, testInfo) => {
   const response = await submitRequest(page, "WN-1001", testInfo);
   expect(response.ok()).toBeTruthy();
   const result = await response.json();
@@ -74,31 +84,19 @@ test("AI outage escalates and remains visible in the support audit", async ({ pa
 
   await page.goto("/support");
   await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
+  await expect(page.getByRole("heading", { name: "Support sign in" })).toBeVisible();
   await loginAsSupport(page, false);
   await expect(page.getByRole("heading", { name: "Support dashboard" })).toBeVisible();
   await page.getByRole("link", { name: `#${result.id}` }).click();
-  await expect(page).toHaveURL(new RegExp(`/support/refunds/${result.id}$`));
+  const detailPath = `/support/refunds/${result.id}`;
+  await expect(page).toHaveURL(new RegExp(`${detailPath}$`));
 
   await expect(page.getByRole("region", { name: "Customer request" })).toBeVisible();
   await expect(page.getByRole("region", { name: "AI analysis" })).toContainText("unavailable");
   await expect(page.getByRole("region", { name: "Policy evaluation" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Final resolution" })).toContainText("ESCALATED");
   await expect(page.getByText(/policy evaluation shown above remains the deterministic fallback result/i)).toBeVisible();
-});
-
-test("customer, dashboard, and audit routes fit desktop and mobile viewports", async ({ page }, testInfo) => {
-  const pageErrors: string[] = [];
-  page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") pageErrors.push(message.text());
-  });
-
-  await loginAsSupport(page);
-  await page.goto("/support");
-  const detailLink = page.locator('a[href^="/support/refunds/"]').first();
-  await expect(detailLink).toBeVisible();
-  const detailPath = await detailLink.getAttribute("href");
-  if (!detailPath) throw new Error("Seeded support row did not include a detail link.");
+  pageErrors.length = 0;
 
   for (const viewport of [
     { name: "desktop", width: 1440, height: 900 },
@@ -120,4 +118,9 @@ test("customer, dashboard, and audit routes fit desktop and mobile viewports", a
       await page.screenshot({ path: testInfo.outputPath(`${viewport.name}-${route.replaceAll("/", "_") || "home"}.png`), fullPage: true });
     }
   }
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL("/support/login");
+  await page.goto("/support");
+  await expect(page).toHaveURL(/\/support\/login\?next=%2Fsupport$/);
 });

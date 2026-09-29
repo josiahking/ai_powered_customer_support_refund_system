@@ -31,11 +31,12 @@ class RefundRequestService
 
     public function create(
         int $orderId,
+        int $customerId,
         string $requestedAmount,
         RefundReason $reason,
         string $customerMessage,
     ): RefundRequest {
-        $order = Order::query()->findOrFail($orderId);
+        $order = Order::query()->whereKey($orderId)->where('customer_id', $customerId)->firstOrFail();
         $requestedMoney = Money::fromDecimal($requestedAmount);
 
         if ($requestedMoney->cents > Money::fromDecimal($order->total_amount)->cents) {

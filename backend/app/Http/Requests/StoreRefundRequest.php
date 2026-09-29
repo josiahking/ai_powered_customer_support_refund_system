@@ -17,7 +17,9 @@ class StoreRefundRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_id' => ['required', 'integer', 'exists:orders,id'],
+            'order_access_token' => ['required', 'string', 'max:8192'],
+            'order_id' => ['prohibited'],
+            'customer_id' => ['prohibited'],
             'requested_amount' => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:99999999.99'],
             'reason' => ['required', Rule::enum(RefundReason::class)],
             'customer_message' => ['required', 'string', 'max:2000'],

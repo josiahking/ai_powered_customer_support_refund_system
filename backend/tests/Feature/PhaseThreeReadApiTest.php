@@ -27,7 +27,7 @@ class PhaseThreeReadApiTest extends TestCase
         ]);
     }
 
-    public function test_order_lookup_returns_minimal_customer_facing_facts(): void
+    public function test_order_verification_returns_minimal_customer_facing_facts(): void
     {
         $customer = Customer::factory()->create(['email' => 'private@example.test']);
         $order = Order::factory()->for($customer)->create([
@@ -38,24 +38,28 @@ class PhaseThreeReadApiTest extends TestCase
             'final_sale' => false,
         ]);
 
-        $response = $this->getJson('/api/orders/WN-LOOKUP');
+        $response = $this->postJson('/api/orders/verify', [
+            'order_number' => 'WN-LOOKUP',
+            'email' => 'private@example.test',
+        ]);
 
         $response
             ->assertOk()
-            ->assertExactJson([
-                'id' => $order->id,
-                'order_number' => 'WN-LOOKUP',
-                'item_name' => 'Travel Mug',
-                'total_amount' => '32.50',
-                'ordered_at' => $order->ordered_at->toISOString(),
-                'final_sale' => false,
-            ])
+            ->assertJsonPath('order.order_number', 'WN-LOOKUP')
+            ->assertJsonPath('order.item_name', 'Travel Mug')
+            ->assertJsonPath('order.total_amount', '32.50')
+            ->assertJsonPath('order.ordered_at', $order->ordered_at->toISOString())
+            ->assertJsonPath('order.final_sale', false)
+            ->assertJsonMissingPath('order.id')
             ->assertJsonMissing(['email' => 'private@example.test']);
     }
 
     public function test_unknown_order_number_returns_not_found(): void
     {
-        $this->getJson('/api/orders/WN-UNKNOWN')->assertNotFound();
+        $this->postJson('/api/orders/verify', [
+            'order_number' => 'WN-UNKNOWN',
+            'email' => 'private@example.test',
+        ])->assertNotFound();
     }
 
     public function test_refund_request_list_is_newest_first_bounded_and_excludes_email(): void

@@ -37,6 +37,7 @@ class RefundRequestTransactionTest extends TestCase
 
         $request = app(RefundRequestService::class)->create(
             orderId: $order->id,
+            customerId: $customer->id,
             requestedAmount: '40.00',
             reason: RefundReason::Damaged,
             customerMessage: 'The item arrived cracked.',

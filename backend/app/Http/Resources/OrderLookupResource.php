@@ -11,7 +11,6 @@ class OrderLookupResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
             'order_number' => $this->order_number,
             'item_name' => $this->item_name,
             'total_amount' => $this->total_amount,

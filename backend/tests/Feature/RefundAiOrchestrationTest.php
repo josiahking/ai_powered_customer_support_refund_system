@@ -12,6 +12,7 @@ use App\Domain\Refunds\RefundReason;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\RefundRequest;
+use App\Services\OrderAccessToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fakes\FakeRefundAiAnalyzer;
 use Tests\TestCase;
@@ -254,7 +255,7 @@ class RefundAiOrchestrationTest extends TestCase
         $order = $this->order();
 
         $response = $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => '40.00',
             'reason' => 'DAMAGED',
         ]);
@@ -266,7 +267,7 @@ class RefundAiOrchestrationTest extends TestCase
     private function submit(Order $order, string $hint, string $message, string $amount = '40.00')
     {
         return $this->postJson('/api/refund-requests', [
-            'order_id' => $order->id,
+            'order_access_token' => app(OrderAccessToken::class)->issue($order),
             'requested_amount' => $amount,
             'reason' => $hint,
             'customer_message' => $message,

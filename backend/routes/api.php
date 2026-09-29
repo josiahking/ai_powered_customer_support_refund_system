@@ -15,7 +15,7 @@ Route::get('/health', function () {
     ]);
 });
 
-Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
+Route::post('/orders/verify', [OrderController::class, 'verify'])->middleware('throttle:10,1');
 Route::post('/refund-requests', [RefundRequestController::class, 'store']);
 
 Route::post('/support/login', [SupportAuthController::class, 'login'])->middleware('throttle:5,1');

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ApiError, lookupOrder, submitRefundRequest } from "@/lib/api";
+import { ApiError, submitRefundRequest, verifyOrder } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { Order, RefundReason, RefundSubmission } from "@/lib/types";
+import type { CustomerOrder, RefundReason, RefundSubmission } from "@/lib/types";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { OutcomeBadge } from "@/components/shared/OutcomeBadge";
 import styles from "./CustomerRefundFlow.module.css";
 
 export function CustomerRefundFlow() {
   const [orderNumber, setOrderNumber] = useState("");
-  const [order, setOrder] = useState<Order | null>(null);
+  const [email, setEmail] = useState("");
+  const [order, setOrder] = useState<CustomerOrder | null>(null);
+  const [orderAccessToken, setOrderAccessToken] = useState("");
   const [requestedAmount, setRequestedAmount] = useState("");
   const [reason, setReason] = useState<RefundReason | "">("");
   const [customerMessage, setCustomerMessage] = useState("");
@@ -23,20 +25,23 @@ export function CustomerRefundFlow() {
   async function handleLookup(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const normalizedOrderNumber = orderNumber.trim().toUpperCase();
-    if (!normalizedOrderNumber) return;
+    const normalizedEmail = email.trim();
+    if (!normalizedOrderNumber || !normalizedEmail) return;
 
     setIsLookingUp(true);
     setLookupError("");
     setOrder(null);
+    setOrderAccessToken("");
     setResult(null);
 
     try {
-      const foundOrder = await lookupOrder(normalizedOrderNumber);
-      setOrder(foundOrder);
-      setOrderNumber(foundOrder.order_number);
-      setRequestedAmount(foundOrder.total_amount);
+      const verified = await verifyOrder(normalizedOrderNumber, normalizedEmail);
+      setOrder(verified.order);
+      setOrderAccessToken(verified.order_access_token);
+      setOrderNumber(verified.order.order_number);
+      setRequestedAmount(verified.order.total_amount);
     } catch (error) {
-      setLookupError(getErrorMessage(error, "We could not find that order. Check the number and try again."));
+      setLookupError(getErrorMessage(error, "We could not verify that order. Check the order number and email and try again."));
     } finally {
       setIsLookingUp(false);
     }
@@ -44,20 +49,26 @@ export function CustomerRefundFlow() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!order || !reason || isSubmitting) return;
+    if (!order || !orderAccessToken || !reason || isSubmitting) return;
 
     setIsSubmitting(true);
     setSubmitError("");
 
     try {
       const submission = await submitRefundRequest({
-        order_id: order.id,
+        order_access_token: orderAccessToken,
         requested_amount: requestedAmount,
         reason,
         customer_message: customerMessage.trim(),
       });
       setResult(submission);
     } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 403) {
+        setOrder(null);
+        setOrderAccessToken("");
+        setLookupError(error.message);
+        return;
+      }
       setSubmitError(getErrorMessage(error, "We could not submit your request. Please review the details and try again."));
     } finally {
       setIsSubmitting(false);
@@ -66,8 +77,10 @@ export function CustomerRefundFlow() {
 
   function startAnotherRequest(): void {
     setOrder(null);
+    setOrderAccessToken("");
     setResult(null);
     setOrderNumber("");
+    setEmail("");
     setRequestedAmount("");
     setReason("");
     setCustomerMessage("");
@@ -104,7 +117,7 @@ export function CustomerRefundFlow() {
                   <span className={styles.sectionIndex}>01</span>
                   <div>
                     <h2>Find your order</h2>
-                    <p>Enter the order number from your confirmation.</p>
+                    <p>We use these details to verify the order before accepting a refund request.</p>
                   </div>
                 </div>
                 <label className={styles.label} htmlFor="order-number">Order number</label>
@@ -118,9 +131,19 @@ export function CustomerRefundFlow() {
                     required
                   />
                   <button className={styles.primaryButton} disabled={isLookingUp} type="submit">
-                    {isLookingUp ? "Looking up…" : "Find order"}
+                    {isLookingUp ? "Verifying…" : "Verify order"}
                   </button>
                 </div>
+                <label className={styles.label} htmlFor="order-email">Email used for this order</label>
+                <input
+                  id="order-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  maxLength={254}
+                  required
+                />
                 <p className={styles.helper}>Try demo order <button className={styles.textButton} onClick={() => setOrderNumber("WN-1001")} type="button">WN-1001</button></p>
                 {lookupError && <p className={styles.error} role="alert">{lookupError}</p>}
               </form>
