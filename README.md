@@ -22,7 +22,7 @@ If the AI provider is unavailable, hard policy rules are still enforced and requ
 
 ## Demo Video
 
-Demo video link will be added before submission.
+[Watch the WORKNOON demo](https://youtu.be/OQjiHYipylk).
 
 ## Tech Stack
 
