@@ -1,28 +1,39 @@
-# AI-Powered Customer Support Refund System
+# AI-Powered Customer Support Refund System (WORKNOON)
 
-## Overview
+**A full-stack Laravel and Next.js refund-support application that uses AI for customer-message interpretation while keeping refund decisions under explicit, testable business rules.**
 
-WORKNOON is a full-stack refund-support application with:
+Built with **Laravel 13, Next.js 16, React 19, TypeScript, PostgreSQL 17 and Docker Compose**, WORKNOON demonstrates how to integrate language models into a sensitive business workflow without giving the model authority over the final outcome.
 
-- A customer-facing refund request flow
-- An authenticated support dashboard
-- A Laravel API
-- PostgreSQL-backed customer and order data
-- An AI-assisted analysis layer
+[**Watch the application demo**](https://youtu.be/OQjiHYipylk) · [**Explore the API and setup**](#run-locally-with-docker-compose) · [**Review the refund policy**](#refund-policy)
 
-AI interprets customer messages and provides structured advisory signals. It does not directly approve or deny refunds. Final outcomes are produced by deterministic application policy.
+> **Scope:** This is an assessment/portfolio application using synthetic data. It does not issue real payment refunds or integrate with a live payment gateway. The production improvements and limitations are documented below.
 
-## Key Design Decision
+## What the application does
 
-The language model classifies the stated issue, summarizes the request, and returns risk signals such as suspicious or conflicting claims.
+- **Customer refund flow:** Verifies an order using its number and email, then accepts a refund request through a short-lived, encrypted order-access capability.
+- **AI-assisted interpretation:** Classifies customer messages, summarizes issues and flags suspicious or conflicting claims through a provider-neutral AI interface.
+- **Deterministic decisions:** Evaluates authoritative order data and advisory AI signals against a defined policy, producing `APPROVED`, `DENIED` or `ESCALATED` outcomes.
+- **Support review:** Provides authenticated support access to recent requests, policy results and audit information.
+- **Failure-safe behavior:** Enforces hard rules even when the AI provider is unavailable and escalates requests that still need interpretation.
 
-`RefundPolicyEngine` evaluates those advisory signals together with authoritative order data loaded by the server. The application, not the model, owns the final `APPROVED`, `DENIED`, or `ESCALATED` result.
+## Engineering highlights
 
-If the AI provider is unavailable, hard policy rules are still enforced and requests that require AI interpretation are escalated for human review.
+| Engineering concern | Implementation |
+| --- | --- |
+| **AI governance** | `RefundPolicyEngine` owns the decision; the model provides advisory signals, not final approval. |
+| **Provider abstraction** | A common `LlmClient` boundary supports Gemini and OpenAI without coupling business policy to a provider. |
+| **Secure order access** | Verified order number and email yield a time-limited encrypted capability; browser-supplied customer and order IDs are not trusted. |
+| **Operational resilience** | Bounded retries for specified transient Gemini failures and safe human-review escalation when analysis remains unavailable. |
+| **Auditable workflow** | Support users can inspect AI analysis status, policy evaluation and final resolution. |
+| **Verification** | Backend, frontend and Playwright E2E checks, including the customer ownership boundary and policy behavior. |
 
-## Demo Video
+## Core architectural decision
 
-[Watch the WORKNOON demo](https://youtu.be/OQjiHYipylk).
+**AI interprets the request; application policy decides the result.**
+
+The language model can classify a stated issue, summarize the request and identify risk signals. `RefundPolicyEngine` combines those signals with server-verified order data to decide whether to approve, deny or escalate. Customer-provided instructions cannot override the policy, and the model never directly authorizes a refund.
+
+For example, an instruction embedded in a customer's message cannot turn a final-sale order into an eligible refund. If AI is unavailable, final-sale, expired-window and high-value rules continue to apply, while requests requiring interpretation are escalated for human review.
 
 ## Tech Stack
 
